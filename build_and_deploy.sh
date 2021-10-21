@@ -1,7 +1,7 @@
 #!/bin/bash
 
-GCP_CONFIGURATION_NAME=bearit
-GCP_PROJECT_NAME=cogme-cup
+GCP_CONFIGURATION_NAME=default
+GCP_PROJECT_NAME=cogme-cup-329612
 GCP_REGION=asia-northeast1
 
 if [ -z "$1" ]
@@ -17,12 +17,12 @@ gcloud config configurations activate ${GCP_CONFIGURATION_NAME}
 rm data/config.json
 cp data/config-"${ENVSUFFIX}".json data/config.json
 
-docker build --no-cache -t eu.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}" .
-docker push eu.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}"
+docker build --no-cache -t asia.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}" .
+docker push asia.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}"
 
 echo "Deploy new revision of inviterole-${ENVSUFFIX}"
 
-gcloud run deploy inviterole-"${ENVSUFFIX}" --image=eu.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}" \
+gcloud run deploy inviterole-"${ENVSUFFIX}" --image=asia.gcr.io/${GCP_PROJECT_NAME}/inviterole-"${ENVSUFFIX}" \
   --platform=managed --region=${GCP_REGION} --allow-unauthenticated \
   --max-instances 1 --memory=512Mi
 
