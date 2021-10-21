@@ -6,6 +6,23 @@ const client = new Discord.Client();
 // Initialize the invite cache
 const invites = {};
 
+// Cloud Run must listen for requests on 0.0.0.0 
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+// Set the response HTTP header with HTTP status and Content type
+res.writeHead(200, {'Content-Type': 'text/plain'});
+// Send the response body "Hello World"
+res.end('Just for testing purposes\n');
+});
+
+server.listen(port, () => {
+console.log('Hello world listening on port', port);
+});
+
+
+
+
 // A pretty useful method to create a delay without blocking the whole script.
 const wait = require("util").promisify(setTimeout);
 
