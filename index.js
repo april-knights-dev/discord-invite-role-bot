@@ -1,23 +1,16 @@
-const Discord = require("discord.js");
 const config = require("./config.json");
 const fs = require("fs");
-const { allowedNodeEnvironmentFlags } = require("process");
-const client = new Discord.Client();
+const { Client, Intents } = require("discord.js");
+const client = new Client({
+  intents: [
+    Intents.FLAGS.GUILDS,
+    Intents.FLAGS.GUILD_MESSAGES,
+    Intents.FLAGS.GUILD_PRESENCES,
+    Intents.FLAGS.GUILD_MEMBERS,
+  ],
+});
 // Initialize the invite cache
 const invites = {};
-
-// Cloud Run must listen for requests on 0.0.0.0 
-const http = require('http');
-const server = http.createServer((req, res) => {
-// Set the response HTTP header with HTTP status and Content type
-res.writeHead(200, {'Content-Type': 'text/plain'});
-// Send the response body "Hello World"
-res.end('Just for testing purposes\n');
-});
-const port = process.env.PORT || 8080;
-server.listen(port, () => {
-  console.log('Hello world listening on port', port);
-});
 
 // A pretty useful method to create a delay without blocking the whole script.
 const wait = require("util").promisify(setTimeout);
@@ -27,22 +20,22 @@ client.on("ready", async () => {
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
 
-  client.guilds.cache.forEach(g => {
-    g.fetchInvites().then(guildInvites => {
-      invites[g.id] = guildInvites;
-    });
-  });
+  // client.guilds.cache.forEach(g => {
+  //   g.fetchInvites().then(guildInvites => {
+  //     invites[g.id] = guildInvites;
+  //   });
+  // });
 });
 
-client.on("guildMemberAdd", member => {
+client.on("guildMemberAdd", (member) => {
   // To compare, we need to load the current invite list.
-  member.guild.fetchInvites().then(guildInvites => {
+  member.guild.fetchInvites().then((guildInvites) => {
     // This is the *existing* invites for the guild.
     const ei = invites[member.guild.id];
 
     invites[member.guild.id] = guildInvites;
     // Look through the invites, find the one for which the uses went up.
-    const invite = guildInvites.find(i => ei.get(i.code).uses < i.uses);
+    const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
     if (invite !== null) {
       addRole(member, invite);
     }
@@ -50,7 +43,7 @@ client.on("guildMemberAdd", member => {
 });
 
 const prefix = "~";
-client.on("message", function(message) {
+client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
   if (!message.member.hasPermission("ADMINISTRATOR")) return;
@@ -82,9 +75,10 @@ client.on("message", function(message) {
 function addRole(member, invite) {
   let rawdata = fs.readFileSync("invites.json");
   let _invites = JSON.parse(rawdata);
+
   const { roleID } = _invites[invite.code];
   if (roleID) {
-    var role = member.guild.roles.cache.find(role => role.id === roleID);
+    var role = member.guild.roles.cache.find((role) => role.id === roleID);
     member.roles.add(role);
   }
 }
@@ -118,7 +112,7 @@ function add(message, args) {
     roleprefix.length,
     args[1].length - roleprefix.length - 1
   );
-  let role = message.guild.roles.cache.find(x => x.id === roleID);
+  let role = message.guild.roles.cache.find((x) => x.id === roleID);
 
   if (typeof role === undefined) {
     message.reply(`invalid role`);
