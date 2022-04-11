@@ -1,13 +1,20 @@
 const config = require("./config.json");
 const fs = require("fs");
+<<<<<<< HEAD
 const { Client, Intents, MessageAttachment } = require('discord.js');
+=======
+const { Client, Intents } = require("discord.js");
+>>>>>>> 279c149786aba1664e85de0e97f5210459e6fb50
 const client = new Client({
   intents: [
     Intents.FLAGS.GUILDS,
     Intents.FLAGS.GUILD_MESSAGES,
     Intents.FLAGS.GUILD_PRESENCES,
     Intents.FLAGS.GUILD_MEMBERS,
+<<<<<<< HEAD
     Intents.FLAGS.GUILD_INVITES,
+=======
+>>>>>>> 279c149786aba1664e85de0e97f5210459e6fb50
   ],
 });
 // Initialize the invite cache
@@ -21,6 +28,7 @@ client.on("ready", async () => {
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
 
+<<<<<<< HEAD
   client.guilds.cache.forEach(g => {
     g.invites.fetch().then(guildInvites => {
       invites[g.id] = guildInvites;
@@ -47,6 +55,35 @@ client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
   if (!message.member.permissions.has("ADMINISTRATOR")) return;
+=======
+  // client.guilds.cache.forEach(g => {
+  //   g.fetchInvites().then(guildInvites => {
+  //     invites[g.id] = guildInvites;
+  //   });
+  // });
+});
+
+client.on("guildMemberAdd", (member) => {
+  // To compare, we need to load the current invite list.
+  member.guild.fetchInvites().then((guildInvites) => {
+    // This is the *existing* invites for the guild.
+    const ei = invites[member.guild.id];
+
+    invites[member.guild.id] = guildInvites;
+    // Look through the invites, find the one for which the uses went up.
+    const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
+    if (invite !== null) {
+      addRole(member, invite);
+    }
+  });
+});
+
+const prefix = "~";
+client.on("messageCreate", async (message) => {
+  if (message.author.bot) return;
+  if (!message.content.startsWith(prefix)) return;
+  if (!message.member.permission.has("ADMINISTRATOR")) return;
+>>>>>>> 279c149786aba1664e85de0e97f5210459e6fb50
 
   const commandBody = message.content.slice(prefix.length);
   const args = commandBody.split(" ");
