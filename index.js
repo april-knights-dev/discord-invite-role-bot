@@ -11,7 +11,7 @@ const client = new Client({
   ],
 });
 // Initialize the invite cache
-const invites = {};
+const guildInvites = new Map();
 
 // A pretty useful method to create a delay without blocking the whole script.
 const wait = require("util").promisify(setTimeout);
@@ -21,25 +21,32 @@ client.on("ready", async () => {
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
 
-  client.guilds.cache.forEach(g => {
-    g.invites.fetch().then(guildInvites => {
-      invites[g.id] = guildInvites;
-    });
-  });
+  client.guilds.cache.forEach(guild => {
+    guild.invites.fetch()
+      .then(invites => {
+        console.log("INVITES CACHED");
+        const codeUses = new Map();
+        invites.each(inv => codeUses.set(inv.code, inv.uses));
+        guildInvites.set(guild.id, codeUses);
+      })
+      .catch(err => {
+        console.log("OnReady Error:", err)
+      })
+  })
 });
 
 client.on("guildMemberAdd", async (member) => {
   // To compare, we need to load the current invite list.
   const newInvites = await member.guild.invites.fetch();
   // This is the *existing* invites for the guild.
-  const ei = invites[member.guild.id];
+  const cachedInvites = guildInvites.get(member.guild.id);
 
-  invites[member.guild.id] = newInvites;
-  const guildInvites = await member.guild.invites.fetch();
   // Look through the invites, find the one for which the uses went up.
-  const invite = guildInvites.find(i => ei.get(i.code));
-  if (invite !== null) {
-    addRole(member, invite);
+  const usedInvite = newInvites.find(i => cachedInvites.get(i.code) < i.uses);
+  newInvites.each(inv => cachedInvites.set(inv.code, inv.uses));
+  guildInvites.set(member.guild.id, cachedInvites);
+  if (usedInvite !== null) {
+    addRole(member, usedInvite);
   }
 });
 
