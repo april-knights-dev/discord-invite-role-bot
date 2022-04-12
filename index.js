@@ -35,8 +35,9 @@ client.on("guildMemberAdd", async (member) => {
   const ei = invites[member.guild.id];
 
   invites[member.guild.id] = newInvites;
+  const guildInvites = await member.guild.invites.fetch();
   // Look through the invites, find the one for which the uses went up.
-  const invite = guildInvites.find(i => ei.get(i.code).uses < i.uses);
+  const invite = guildInvites.find(i => ei.get(i.code));
   if (invite !== null) {
     addRole(member, invite);
   }
@@ -76,10 +77,14 @@ function addRole(member, invite) {
   let rawdata = fs.readFileSync("invites.json");
   let _invites = JSON.parse(rawdata);
 
-  const { roleID } = _invites[invite.code];
-  if (roleID) {
-    var role = member.guild.roles.cache.find((role) => role.id === roleID);
-    member.roles.add(role);
+  try {
+    const { roleID } = _invites[invite.code];
+    if (roleID) {
+      var role = member.guild.roles.cache.find((role) => role.id === roleID);
+      member.roles.add(role);
+    }
+  } catch (err) {
+    console.log(err);
   }
 }
 

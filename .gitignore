@@ -1,2 +1,5 @@
 config*.json
 node_modules
+.history/
+launch.json
+package-lock.json
