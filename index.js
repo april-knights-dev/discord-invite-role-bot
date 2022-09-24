@@ -19,17 +19,11 @@ client.on("ready", async () => {
   // "ready" isn't really ready. We need to wait a spell.
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
-
-  // client.guilds.cache.forEach(g => {
-  //   g.fetchInvites().then(guildInvites => {
-  //     invites[g.id] = guildInvites;
-  //   });
-  // });
 });
 
 client.on("guildMemberAdd", (member) => {
   // To compare, we need to load the current invite list.
-  member.guild.fetchInvites().then((guildInvites) => {
+  member.guild.invites.fetch().then((guildInvites) => {
     // This is the *existing* invites for the guild.
     const ei = invites[member.guild.id];
 
@@ -72,13 +66,14 @@ client.on("messageCreate", async (message) => {
   }
 });
 
-function addRole(member, invite) {
+async function addRole(member, invite) {
   let rawdata = fs.readFileSync("invites.json");
   let _invites = JSON.parse(rawdata);
 
   const { roleID } = _invites[invite.code];
   if (roleID) {
-    var role = member.guild.roles.cache.find((role) => role.id === roleID);
+    const roles = await member.guild.roles.fetch();
+    var role = roles.find((role) => role.id === roleID);
     member.roles.add(role);
   }
 }
@@ -89,7 +84,7 @@ function list(message) {
   message.reply(`\`\`\`\n${JSON.stringify(_invites, null, 2)}\n\`\`\``);
 }
 
-function add(message, args) {
+async function add(message, args) {
   let rawdata = fs.readFileSync("invites.json");
   let _invites = JSON.parse(rawdata);
 
@@ -112,7 +107,8 @@ function add(message, args) {
     roleprefix.length,
     args[1].length - roleprefix.length - 1
   );
-  let role = message.guild.roles.cache.find((x) => x.id === roleID);
+  const roles = await member.guild.roles.fetch();
+  let role = roles.find((x) => x.id === roleID);
 
   if (typeof role === undefined) {
     message.reply(`invalid role`);
