@@ -37,10 +37,9 @@ client.on("ready", async () => {
 
 client.on("guildMemberAdd", async (member) => {
   // To compare, we need to load the current invite list.
-  member.guild.invites.fetch().then((guildInvites) => {
   const newInvites = await member.guild.invites.fetch();
   // This is the *existing* invites for the guild.
-  const cachedInvites = guildInvites.get(member.guild.id);
+  const cachedInvites = member.guild.invites.cache.find((id) => id === member.guild.id);
 
   // Look through the invites, find the one for which the uses went up.
   const usedInvite = newInvites.find(i => cachedInvites.get(i.code) < i.uses);
