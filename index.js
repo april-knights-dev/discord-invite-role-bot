@@ -1,16 +1,17 @@
 const config = require("./config.json");
 const fs = require("fs");
-const { Client, Intents } = require("discord.js");
+const { Client, Intents, MessageAttachment } = require('discord.js');
 const client = new Client({
   intents: [
     Intents.FLAGS.GUILDS,
     Intents.FLAGS.GUILD_MESSAGES,
     Intents.FLAGS.GUILD_PRESENCES,
     Intents.FLAGS.GUILD_MEMBERS,
+    Intents.FLAGS.GUILD_INVITES,
   ],
 });
 // Initialize the invite cache
-const invites = {};
+const guildInvites = new Map();
 
 // A pretty useful method to create a delay without blocking the whole script.
 const wait = require("util").promisify(setTimeout);
@@ -19,28 +20,44 @@ client.on("ready", async () => {
   // "ready" isn't really ready. We need to wait a spell.
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
+
+  client.guilds.cache.forEach(guild => {
+    guild.invites.fetch()
+      .then(invites => {
+        console.log("INVITES CACHED");
+        const codeUses = new Map();
+        invites.each(inv => codeUses.set(inv.code, inv.uses));
+        guildInvites.set(guild.id, codeUses);
+      })
+      .catch(err => {
+        console.log("OnReady Error:", err)
+      })
+  })
 });
 
-client.on("guildMemberAdd", (member) => {
+client.on("guildMemberAdd", async (member) => {
   // To compare, we need to load the current invite list.
   member.guild.invites.fetch().then((guildInvites) => {
-    // This is the *existing* invites for the guild.
-    const ei = invites[member.guild.id];
+  const newInvites = await member.guild.invites.fetch();
+  // This is the *existing* invites for the guild.
+  const cachedInvites = guildInvites.get(member.guild.id);
 
-    invites[member.guild.id] = guildInvites;
-    // Look through the invites, find the one for which the uses went up.
-    const invite = guildInvites.find((i) => ei.get(i.code).uses < i.uses);
-    if (invite !== null) {
-      addRole(member, invite);
-    }
-  });
+  // Look through the invites, find the one for which the uses went up.
+  const usedInvite = newInvites.find(i => cachedInvites.get(i.code) < i.uses);
+  newInvites.each(inv => cachedInvites.set(inv.code, inv.uses));
+  guildInvites.set(member.guild.id, cachedInvites);
+  if (usedInvite !== null) {
+    addRole(member, usedInvite);
+  } else {
+    addRole(member, newInvites);
+  }
 });
 
 const prefix = "~";
-client.on("messageCreate", async (message) => {
+client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
-  if (!message.member.permission.has("ADMINISTRATOR")) return;
+  if (!message.member.permissions.has("ADMINISTRATOR")) return;
 
   const commandBody = message.content.slice(prefix.length);
   const args = commandBody.split(" ");
@@ -70,18 +87,21 @@ async function addRole(member, invite) {
   let rawdata = fs.readFileSync("invites.json");
   let _invites = JSON.parse(rawdata);
 
-  const { roleID } = _invites[invite.code];
-  if (roleID) {
+  try {
+    const { roleID } = _invites[invite.code];
+    if (roleID) {
     const roles = await member.guild.roles.fetch();
     var role = roles.find((role) => role.id === roleID);
-    member.roles.add(role);
+      member.roles.add(role);
+    }
+  } catch (err) {
+    console.log(err);
   }
 }
 
 function list(message) {
-  let rawdata = fs.readFileSync("invites.json");
-  let _invites = JSON.parse(rawdata);
-  message.reply(`\`\`\`\n${JSON.stringify(_invites, null, 2)}\n\`\`\``);
+  const attachment = new MessageAttachment('invites.json', 'invites.json');
+  message.reply({ content: '現在のリストです。', files: [attachment] });
 }
 
 async function add(message, args) {
