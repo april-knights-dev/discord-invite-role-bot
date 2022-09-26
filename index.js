@@ -11,7 +11,7 @@ const client = new Client({
   ],
 });
 // Initialize the invite cache
-const invites = {};
+const guildInvites = new Map();
 
 // A pretty useful method to create a delay without blocking the whole script.
 const wait = require("util").promisify(setTimeout);
