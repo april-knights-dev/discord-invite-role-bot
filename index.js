@@ -36,6 +36,8 @@ client.on("guildMemberAdd", async (member) => {
   invites[member.guild.id] = newInvites;
   const guildInvites = await member.guild.invites.fetch();
   // Look through the invites, find the one for which the uses went up.
+  console.log({ guildInvites });
+  console.log({ ei });
   const invite = guildInvites.find(i => ei.get(i.code));
   if (invite !== null) {
     addRole(member, invite);
