@@ -1,13 +1,14 @@
 const config = require("./config.json");
 const fs = require("fs");
-const { Client, Intents, MessageAttachment } = require('discord.js');
+const { Client, GatewayIntentBits, AttachmentBuilder } = require("discord.js");
 const client = new Client({
   intents: [
-    Intents.FLAGS.GUILDS,
-    Intents.FLAGS.GUILD_MESSAGES,
-    Intents.FLAGS.GUILD_PRESENCES,
-    Intents.FLAGS.GUILD_MEMBERS,
-    Intents.FLAGS.GUILD_INVITES,
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildPresences,
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildInvites,
+    GatewayIntentBits.MessageContent,
   ],
 });
 // Initialize the invite cache
@@ -19,19 +20,20 @@ client.on("ready", async () => {
   // "ready" isn't really ready. We need to wait a spell.
   await wait(1000);
   console.log(`Logged in as ${client.user.tag}!`);
-
-  client.guilds.cache.forEach(guild => {
-    guild.invites.fetch()
-      .then(invites => {
-        console.log("INVITES CACHED");
-        const codeUses = new Map();
-        invites.each(inv => codeUses.set(inv.code, inv.uses));
-        guildInvites.set(guild.id, codeUses);
-      })
-      .catch(err => {
-        console.log("OnReady Error:", err)
-      })
-  })
+  await client.guilds.fetch();
+  try {
+    client.guilds.cache.forEach(async (guild) => {
+      await guild.invites.fetch();
+      const invites = guild.invites;
+      console.log(`guild: ${guild.name}`);
+      console.log(`INVITES CACHED: ${invites.cache.size}`);
+      const codeUses = new Map();
+      invites.cache.map((inv) => codeUses.set(inv.code, inv.uses));
+      guildInvites.set(guild.id, codeUses);
+    });
+  } catch (err) {
+    console.log("OnReady Error:", err);
+  }
 });
 
 client.on("guildMemberAdd", async (member) => {
@@ -41,8 +43,8 @@ client.on("guildMemberAdd", async (member) => {
   const cachedInvites = guildInvites.get(member.guild.id);
 
   // Look through the invites, find the one for which the uses went up.
-  const usedInvite = newInvites.find(i => cachedInvites.get(i.code) < i.uses);
-  newInvites.each(inv => cachedInvites.set(inv.code, inv.uses));
+  const usedInvite = newInvites.find((i) => cachedInvites.get(i.code) < i.uses);
+  newInvites.each((inv) => cachedInvites.set(inv.code, inv.uses));
   guildInvites.set(member.guild.id, cachedInvites);
   if (usedInvite !== null) {
     addRole(member, usedInvite);
@@ -50,7 +52,7 @@ client.on("guildMemberAdd", async (member) => {
 });
 
 const prefix = "~";
-client.on('messageCreate', async (message) => {
+client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
   if (!message.member.permissions.has("ADMINISTRATOR")) return;
@@ -98,8 +100,8 @@ async function addRole(member, invite) {
 }
 
 function list(message) {
-  const attachment = new MessageAttachment('invites.json', 'invites.json');
-  message.reply({ content: '現在のリストです。', files: [attachment] });
+  const attachment = new AttachmentBuilder("invites.json", "invites.json");
+  message.reply({ content: "現在のリストです。", files: [attachment] });
 }
 
 async function add(message, args) {
@@ -159,7 +161,7 @@ async function create(message, args) {
   // 招待リンクの作成
   const guild = message.guild;
   const channels = await guild.channels.fetch();
-  const welcome_channel = channels.find((c) => c.name === 'はじめに');
+  const welcome_channel = channels.find((c) => c.name === "はじめに");
 
   // 作成したリンクを使ってaddと同じことをやる
   const roleprefix = "<@&";
@@ -178,7 +180,11 @@ async function create(message, args) {
     return;
   }
 
-  const invite = await welcome_channel.createInvite({ maxAge: 0, unique: true, reason: role.name });
+  const invite = await welcome_channel.createInvite({
+    maxAge: 0,
+    unique: true,
+    reason: role.name,
+  });
   const inviteCode = invite.code;
   _invites[inviteCode] = { roleID, name: role.name };
 
