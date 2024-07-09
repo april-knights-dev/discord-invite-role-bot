@@ -4,3 +4,4 @@ node_modules
 launch.json
 package-lock.json
 invites.json
+.DS_Store

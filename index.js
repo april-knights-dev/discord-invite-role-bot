@@ -85,7 +85,11 @@ client.on("messageCreate", async (message) => {
 });
 
 async function addRole(member, invite) {
-  let rawdata = fs.readFileSync("invites.json");
+  const guildId = member.guild.id;
+  const filePath = `invites_${guildId}.json`;
+  if (!fs.existsSync(filePath)) return;
+
+  let rawdata = fs.readFileSync(filePath);
   let _invites = JSON.parse(rawdata);
 
   try {
@@ -100,13 +104,24 @@ async function addRole(member, invite) {
 }
 
 function list(message) {
-  const attachment = new AttachmentBuilder("invites.json", "invites.json");
+  const guildId = message.guild.id;
+  const filePath = `invites_${guildId}.json`;
+  if (!fs.existsSync(filePath)) {
+    message.reply("招待リストが存在しません。");
+    return;
+  }
+  const attachment = new AttachmentBuilder(filePath, filePath);
   message.reply({ content: "現在のリストです。", files: [attachment] });
 }
 
 async function add(message, args) {
-  let rawdata = fs.readFileSync("invites.json");
-  let _invites = JSON.parse(rawdata);
+  const guildId = message.guild.id;
+  const filePath = `invites_${guildId}.json`;
+  let _invites = {};
+  if (fs.existsSync(filePath)) {
+    let rawdata = fs.readFileSync(filePath);
+    _invites = JSON.parse(rawdata);
+  }
 
   if (args.length !== 2) {
     message.reply(`not enough arguments`);
@@ -137,7 +152,7 @@ async function add(message, args) {
   _invites[inviteCode] = { roleID, name: role.name };
 
   let data = JSON.stringify(_invites, null, 2);
-  fs.writeFileSync("invites.json", data);
+  fs.writeFileSync(filePath, data);
   message.reply(
     `role @${role.name} added to invite link \`${base + inviteCode}\``
   );
@@ -150,8 +165,13 @@ async function add(message, args) {
  * @returns
  */
 async function create(message, args) {
-  let rawdata = fs.readFileSync("invites.json");
-  let _invites = JSON.parse(rawdata);
+  const guildId = message.guild.id;
+  const filePath = `invites_${guildId}.json`;
+  let _invites = {};
+  if (fs.existsSync(filePath)) {
+    let rawdata = fs.readFileSync(filePath);
+    _invites = JSON.parse(rawdata);
+  }
 
   if (args.length !== 1) {
     message.reply(`not enough arguments`);
@@ -185,11 +205,12 @@ async function create(message, args) {
     unique: true,
     reason: role.name,
   });
+
   const inviteCode = invite.code;
   _invites[inviteCode] = { roleID, name: role.name };
 
   let data = JSON.stringify(_invites, null, 2);
-  fs.writeFileSync("invites.json", data);
+  fs.writeFileSync(filePath, data);
   message.reply(
     `role @${role.name} を付与する招待リンクを作成しました。\n${invite.url}`
   );
