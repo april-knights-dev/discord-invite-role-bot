@@ -1,16 +1,18 @@
-FROM node:12-slim
+FROM node:18
 LABEL maintainer="s.misawa@april-knights.com"
 
 ENV PORT 8080
 ENV HOST 0.0.0.0
 
-# Install app dependencies.
+# 作業ディレクトリを作成
 WORKDIR /src
+
+# 依存関係をインストール
 COPY package.json /src/package.json
-COPY index.js /src/index.js
 RUN npm install
 
-# Bundle app source.
-COPY data /src
+# アプリケーションのソースコードをコピー
+COPY . /src
 
+# アプリケーションを起動
 CMD ["node", "index.js"]
