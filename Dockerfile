@@ -8,7 +8,7 @@ ENV HOST 0.0.0.0
 WORKDIR /src
 
 # 依存関係をインストール
-COPY package.json /src/package.json
+COPY package.json package-lock.json /src/
 RUN npm install
 
 # アプリケーションのソースコードをコピー
