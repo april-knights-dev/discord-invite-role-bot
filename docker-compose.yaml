@@ -10,3 +10,5 @@ services:
       - ./config.json:/src/config.json
     environment:
       - NODE_ENV=development
+    command: ["npm", "start"]
+    restart: always
